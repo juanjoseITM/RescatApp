@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RescatApp.Identities;
 using System.Collections.Generic;
 using System.Linq;
