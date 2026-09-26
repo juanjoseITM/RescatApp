@@ -11,7 +11,6 @@ namespace RescatApp.Models
         public DateTime? fecha_solicitud { get; set; }
         public string? motivo { get; set; }
         public int id_estado_solicitud { get; set; }
-        public Estado_Solicitud? Estado_Solicitud { get; set; }
         public DateTime? fecha_respuesta { get; set; }
         public string? observaciones_rescatista { get; set; }
         public int id_mascota { get; set; }
