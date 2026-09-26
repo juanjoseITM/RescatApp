@@ -15,7 +15,7 @@ namespace RescatApp.Repositories
             _context = context;
         }
 
-        // L - List / Obtener todas las mascotas
+        // L - List / Obtener todas las mascotas (con filtros opcionales)
         public async Task<List<Mascota>> ObtenerMascotasAsync(string? especie, string? tamano)
         {
             var query = _context.Mascotas.AsQueryable();

@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace RescatApp.Identities
+namespace RescatApp.Models
 {
-    public class Seguimiento
+    public class SeguimientoPostadopcion
     {
         [Key]
         public int id_seguimiento { get; set; }
