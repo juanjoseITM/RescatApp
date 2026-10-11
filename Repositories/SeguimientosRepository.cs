@@ -1,6 +1,5 @@
-﻿using RescatApp.Identities;
-using Microsoft.Data.SqlClient;
-using System.Data;
+﻿using Microsoft.Data.SqlClient;
+using RescatApp.Models;
 
 namespace RescatApp.Repositories
 {
@@ -10,54 +9,88 @@ namespace RescatApp.Repositories
 
         public SeguimientosRepository(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("ConexionSQL") ?? "";
+            _connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? throw new InvalidOperationException("Cadena de conexión 'DefaultConnection' no encontrada.");
         }
 
-        public List<Seguimiento> ObtenerTodos()
+        public async Task<List<SeguimientoPostadopcion>> ObtenerPorMascotaIdAsync(int idMascota)
         {
-            var lista = new List<Seguimiento>();
-            using (var conexion = new SqlConnection(_connectionString))
+            var seguimientos = new List<SeguimientoPostadopcion>();
+
+            try
             {
-                conexion.Open();
-                var cmd = new SqlCommand("SELECT id_seguimiento, fecha_seguimiento, peso_actual, estado_salud, observaciones, foto_evidencia, id_mascota, id_adoptante FROM tbl_seguimiento_postadopcion", conexion);
-                using (var reader = cmd.ExecuteReader())
+                using (var connection = new SqlConnection(_connectionString))
                 {
-                    while (reader.Read())
+                    await connection.OpenAsync();
+                    string query = @"SELECT id_seguimiento, fecha_seguimiento, peso_actual, 
+                                            estado_salud, observaciones, foto_evidencia, 
+                                            id_mascota, id_adoptante 
+                                     FROM tbl_seguimiento_postadopcion 
+                                     WHERE id_mascota = @idMascota";
+
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        lista.Add(new Seguimiento
+                        command.Parameters.AddWithValue("@idMascota", idMascota);
+
+                        using (var reader = await command.ExecuteReaderAsync())
                         {
-                            id_seguimiento = Convert.ToInt32(reader["id_seguimiento"]),
-                            fecha_seguimiento = reader["fecha_seguimiento"] != DBNull.Value ? Convert.ToDateTime(reader["fecha_seguimiento"]) : null,
-                            peso_actual = reader["peso_actual"] != DBNull.Value ? Convert.ToDecimal(reader["peso_actual"]) : null,
-                            estado_salud = reader["estado_salud"]?.ToString(),
-                            observaciones = reader["observaciones"]?.ToString(),
-                            foto_evidencia = reader["foto_evidencia"]?.ToString(),
-                            id_mascota = Convert.ToInt32(reader["id_mascota"]),
-                            id_adoptante = Convert.ToInt32(reader["id_adoptante"])
-                        });
+                            while (await reader.ReadAsync())
+                            {
+                                seguimientos.Add(new SeguimientoPostadopcion
+                                {
+                                    IdSeguimiento = reader.GetInt32(0),
+                                    FechaSeguimiento = reader.GetDateTime(1),
+                                    PesoActual = reader.IsDBNull(2) ? null : reader.GetDecimal(2),
+                                    EstadoSalud = reader.IsDBNull(3) ? null : reader.GetString(3),
+                                    Observaciones = reader.IsDBNull(4) ? null : reader.GetString(4),
+                                    FotoEvidencia = reader.IsDBNull(5) ? null : reader.GetString(5),
+                                    IdMascota = reader.GetInt32(6),
+                                    IdAdoptante = reader.GetInt32(7)
+                                });
+                            }
+                        }
                     }
                 }
             }
-            return lista;
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al obtener seguimientos para la mascota {idMascota}: " + ex.Message, ex);
+            }
+
+            return seguimientos;
         }
 
-        public bool Guardar(Seguimiento seguimiento)
+        public async Task<int> CrearAsync(SeguimientoPostadopcion seguimiento)
         {
-            using (var conexion = new SqlConnection(_connectionString))
+            try
             {
-                conexion.Open();
-                var query = @"INSERT INTO tbl_seguimiento_postadopcion (fecha_seguimiento, peso_actual, estado_salud, observaciones, foto_evidencia, id_mascota, id_adoptante) 
-                              VALUES (@fecha, @peso, @estado, @obs, @foto, @idMascota, @idAdoptante)";
-                var cmd = new SqlCommand(query, conexion);
-                cmd.Parameters.AddWithValue("@fecha", (object?)seguimiento.fecha_seguimiento ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@peso", (object?)seguimiento.peso_actual ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@estado", (object?)seguimiento.estado_salud ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@obs", (object?)seguimiento.observaciones ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@foto", (object?)seguimiento.foto_evidencia ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@idMascota", seguimiento.id_mascota);
-                cmd.Parameters.AddWithValue("@idAdoptante", seguimiento.id_adoptante);
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    string query = @"INSERT INTO tbl_seguimiento_postadopcion 
+                                     (fecha_seguimiento, peso_actual, estado_salud, observaciones, foto_evidencia, id_mascota, id_adoptante) 
+                                     VALUES 
+                                     (@fecha, @peso, @estadoSalud, @observaciones, @foto, @idMascota, @idAdoptante);
+                                     SELECT SCOPE_IDENTITY();";
 
-                return cmd.ExecuteNonQuery() > 0;
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@fecha", seguimiento.FechaSeguimiento);
+                        command.Parameters.AddWithValue("@peso", (object?)seguimiento.PesoActual ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@estadoSalud", (object?)seguimiento.EstadoSalud ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@observaciones", (object?)seguimiento.Observaciones ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@foto", (object?)seguimiento.FotoEvidencia ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@idMascota", seguimiento.IdMascota);
+                        command.Parameters.AddWithValue("@idAdoptante", seguimiento.IdAdoptante);
+
+                        var newId = await command.ExecuteScalarAsync();
+                        return Convert.ToInt32(newId);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al registrar el seguimiento post-adopción: " + ex.Message, ex);
             }
         }
     }

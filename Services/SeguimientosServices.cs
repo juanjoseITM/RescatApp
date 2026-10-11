@@ -1,25 +1,30 @@
-﻿using RescatApp.Identities;
+﻿using RescatApp.Models;
 using RescatApp.Repositories;
 
 namespace RescatApp.Services
 {
     public class SeguimientosServices
     {
-        private readonly SeguimientosRepository _repository;
+        private readonly SeguimientosRepository _seguimientosRepository;
 
-        public SeguimientosServices(SeguimientosRepository repository)
+        public SeguimientosServices(SeguimientosRepository seguimientosRepository)
         {
-            _repository = repository;
+            _seguimientosRepository = seguimientosRepository;
         }
 
-        public List<Seguimiento> ObtenerTodos()
+        public async Task<List<SeguimientoPostadopcion>> ObtenerPorMascotaIdAsync(int idMascota)
         {
-            return _repository.ObtenerTodos();
+            return await _seguimientosRepository.ObtenerPorMascotaIdAsync(idMascota);
         }
 
-        public bool Guardar(Seguimiento seguimiento)
+        public async Task<int> CrearAsync(SeguimientoPostadopcion seguimiento)
         {
-            return _repository.Guardar(seguimiento);
+            if (seguimiento.FechaSeguimiento == default)
+            {
+                seguimiento.FechaSeguimiento = DateTime.Now;
+            }
+
+            return await _seguimientosRepository.CrearAsync(seguimiento);
         }
     }
 }

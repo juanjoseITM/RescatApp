@@ -5,13 +5,13 @@ namespace RescatApp.Models
     public class SeguimientoPostadopcion
     {
         [Key]
-        public int id_seguimiento { get; set; }
-        public DateTime? fecha_seguimiento { get; set; }
-        public decimal? peso_actual { get; set; }
-        public string? estado_salud { get; set; }
-        public string? observaciones { get; set; }
-        public string? foto_evidencia { get; set; }
-        public int id_mascota { get; set; }
-        public int id_adoptante { get; set; }
+        public int IdSeguimiento { get; set; }
+        public DateTime FechaSeguimiento { get; set; } = DateTime.Now;
+        public decimal? PesoActual { get; set; }
+        public string? EstadoSalud { get; set; }
+        public string? Observaciones { get; set; }
+        public string? FotoEvidencia { get; set; }
+        public int IdMascota { get; set; }
+        public int IdAdoptante { get; set; }
     }
 }

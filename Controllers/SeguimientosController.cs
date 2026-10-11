@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using RescatApp.Identities;
+using RescatApp.Models;
 using RescatApp.Services;
 
 namespace RescatApp.Controllers
@@ -8,28 +8,51 @@ namespace RescatApp.Controllers
     [Route("api/[controller]")]
     public class SeguimientosController : ControllerBase
     {
-        private readonly SeguimientosServices _service;
+        private readonly SeguimientosServices _seguimientosService;
 
-        public SeguimientosController(SeguimientosServices service)
+        public SeguimientosController(SeguimientosServices seguimientosService)
         {
-            _service = service;
+            _seguimientosService = seguimientosService;
         }
 
-        [HttpGet]
-        public IActionResult Get()
+        /// <summary>
+        /// Obtiene el historial de reportes de seguimiento de una mascota por su ID
+        /// </summary>
+        [HttpGet("mascota/{idMascota}")]
+        public async Task<IActionResult> ObtenerPorMascota(int idMascota)
         {
-            var lista = _service.ObtenerTodos();
-            return Ok(lista);
+            try
+            {
+                var lista = await _seguimientosService.ObtenerPorMascotaIdAsync(idMascota);
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al consultar los seguimientos de la mascota.", detalle = ex.Message });
+            }
         }
 
+        /// <summary>
+        /// Registra un nuevo reporte post-adopción para una mascota
+        /// </summary>
         [HttpPost]
-        public IActionResult Post([FromBody] Seguimiento seguimiento)
+        public async Task<IActionResult> Crear([FromBody] SeguimientoPostadopcion seguimiento)
         {
-            var resultado = _service.Guardar(seguimiento);
-            if (resultado)
-                return Ok(new { mensaje = "Seguimiento guardado correctamente" });
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return BadRequest(new { mensaje = "No se pudo guardar el seguimiento" });
+            try
+            {
+                int nuevoId = await _seguimientosService.CrearAsync(seguimiento);
+                seguimiento.IdSeguimiento = nuevoId;
+                return CreatedAtAction(nameof(ObtenerPorMascota), new { idMascota = seguimiento.IdMascota }, seguimiento);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al registrar el seguimiento post-adopción.", detalle = ex.Message });
+            }
         }
     }
 }
