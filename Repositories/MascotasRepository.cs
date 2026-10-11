@@ -1,70 +1,243 @@
-using Microsoft.EntityFrameworkCore;
-using RescatApp.Identities;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using RescatApp.Interfaces;
+using RescatApp.Models;
 
 namespace RescatApp.Repositories
 {
-    public class MascotasRepository
+    public class MascotasRepository : IMascotasRepository
     {
-        private readonly AppDbContext _context;
+        private readonly string _connectionString;
 
-        public MascotasRepository(AppDbContext context)
+        public MascotasRepository(IConfiguration configuration)
         {
-            _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? throw new InvalidOperationException("Cadena de conexión 'DefaultConnection' no encontrada en appsettings.");
         }
 
-        // L - List / Obtener todas las mascotas (con filtros opcionales)
+        // List (Obtener todas las mascotas con filtros opcionales)
         public async Task<List<Mascota>> ObtenerMascotasAsync(string? especie, string? tamano)
         {
-            var query = _context.Mascotas.AsQueryable();
+            var mascotas = new List<Mascota>();
 
-            if (!string.IsNullOrWhiteSpace(especie))
+            try
             {
-                query = query.Where(m => m.especie.ToLower() == especie.ToLower());
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    string query = @"SELECT id_mascota, nombre, especie, raza, edad_aprox, sexo, 
+                                            tamano, estado_salud, descripcion, fecha_ingreso, 
+                                            estado_adopcion, id_rescatista 
+                                     FROM tbl_mascota 
+                                     WHERE (@especie IS NULL OR LOWER(especie) = LOWER(@especie))
+                                       AND (@tamano IS NULL OR LOWER(tamano) = LOWER(@tamano))";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@especie", (object?)especie ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@tamano", (object?)tamano ?? DBNull.Value);
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                mascotas.Add(new Mascota
+                                {
+                                    IdMascota = reader.GetInt32(0),
+                                    Nombre = reader.GetString(1),
+                                    Especie = reader.GetString(2),
+                                    Raza = reader.IsDBNull(3) ? null : reader.GetString(3),
+                                    EdadAprox = reader.IsDBNull(4) ? null : reader.GetInt32(4),
+                                    Sexo = reader.IsDBNull(5) ? null : reader.GetString(5),
+                                    Tamano = reader.IsDBNull(6) ? null : reader.GetString(6),
+                                    EstadoSalud = reader.IsDBNull(7) ? null : reader.GetString(7),
+                                    Descripcion = reader.IsDBNull(8) ? null : reader.GetString(8),
+                                    FechaIngreso = reader.GetDateTime(9),
+                                    EstadoAdopcion = reader.GetString(10),
+                                    IdRescatista = reader.GetInt32(11)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception("Error en la consulta SQL al obtener la lista de mascotas: " + ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error inesperado al procesar la lista de mascotas: " + ex.Message, ex);
             }
 
-            if (!string.IsNullOrWhiteSpace(tamano))
-            {
-                query = query.Where(m => m.tamano.ToLower() == tamano.ToLower());
-            }
-
-            return await query.ToListAsync();
+            return mascotas;
         }
 
-        // R - Read / Obtener mascota por ID
+        //Read (mascota por ID)
         public async Task<Mascota?> ObtenerPorIdAsync(int id)
         {
-            return await _context.Mascotas
-                .FirstOrDefaultAsync(m => m.id_mascota == id);
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    string query = @"SELECT id_mascota, nombre, especie, raza, edad_aprox, sexo, 
+                                            tamano, estado_salud, descripcion, fecha_ingreso, 
+                                            estado_adopcion, id_rescatista 
+                                     FROM tbl_mascota 
+                                     WHERE id_mascota = @id";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", id);
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                return new Mascota
+                                {
+                                    IdMascota = reader.GetInt32(0),
+                                    Nombre = reader.GetString(1),
+                                    Especie = reader.GetString(2),
+                                    Raza = reader.IsDBNull(3) ? null : reader.GetString(3),
+                                    EdadAprox = reader.IsDBNull(4) ? null : reader.GetInt32(4),
+                                    Sexo = reader.IsDBNull(5) ? null : reader.GetString(5),
+                                    Tamano = reader.IsDBNull(6) ? null : reader.GetString(6),
+                                    EstadoSalud = reader.IsDBNull(7) ? null : reader.GetString(7),
+                                    Descripcion = reader.IsDBNull(8) ? null : reader.GetString(8),
+                                    FechaIngreso = reader.GetDateTime(9),
+                                    EstadoAdopcion = reader.GetString(10),
+                                    IdRescatista = reader.GetInt32(11)
+                                };
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception($"Error de SQL al buscar la mascota con ID {id}: " + ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error inesperado al buscar la mascota con ID {id}: " + ex.Message, ex);
+            }
         }
 
-        // C - Create / Crear mascota
-        public async Task<Mascota> CrearAsync(Mascota mascota)
+        // Create
+        public async Task<int> CrearAsync(Mascota mascota)
         {
-            await _context.Mascotas.AddAsync(mascota);
-            await _context.SaveChangesAsync();
-            return mascota;
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    string query = @"INSERT INTO tbl_mascota 
+                                     (nombre, especie, raza, edad_aprox, sexo, tamano, estado_salud, descripcion, fecha_ingreso, estado_adopcion, id_rescatista) 
+                                     VALUES 
+                                     (@nombre, @especie, @raza, @edad, @sexo, @tamano, @estadoSalud, @descripcion, @fechaIngreso, @estadoAdopcion, @idRescatista);
+                                     SELECT SCOPE_IDENTITY();";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@nombre", mascota.Nombre);
+                        command.Parameters.AddWithValue("@especie", mascota.Especie);
+                        command.Parameters.AddWithValue("@raza", (object?)mascota.Raza ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@edad", (object?)mascota.EdadAprox ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@sexo", (object?)mascota.Sexo ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@tamano", (object?)mascota.Tamano ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@estadoSalud", (object?)mascota.EstadoSalud ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@descripcion", (object?)mascota.Descripcion ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@fechaIngreso", mascota.FechaIngreso);
+                        command.Parameters.AddWithValue("@estadoAdopcion", mascota.EstadoAdopcion);
+                        command.Parameters.AddWithValue("@idRescatista", mascota.IdRescatista);
+
+                        var newId = await command.ExecuteScalarAsync();
+                        return Convert.ToInt32(newId);
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception("Error de SQL al insertar la mascota: " + ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error inesperado al crear la mascota: " + ex.Message, ex);
+            }
         }
 
-        // U - Update / Actualizar mascota
+        // Update
         public async Task<bool> ActualizarAsync(Mascota mascota)
         {
-            _context.Mascotas.Update(mascota);
-            var result = await _context.SaveChangesAsync();
-            return result > 0;
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    string query = @"UPDATE tbl_mascota SET 
+                                     nombre = @nombre, especie = @especie, raza = @raza, 
+                                     edad_aprox = @edad, sexo = @sexo, tamano = @tamano, 
+                                     estado_salud = @estadoSalud, descripcion = @descripcion, 
+                                     estado_adopcion = @estadoAdopcion 
+                                     WHERE id_mascota = @id";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", mascota.IdMascota);
+                        command.Parameters.AddWithValue("@nombre", mascota.Nombre);
+                        command.Parameters.AddWithValue("@especie", mascota.Especie);
+                        command.Parameters.AddWithValue("@raza", (object?)mascota.Raza ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@edad", (object?)mascota.EdadAprox ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@sexo", (object?)mascota.Sexo ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@tamano", (object?)mascota.Tamano ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@estadoSalud", (object?)mascota.EstadoSalud ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@descripcion", (object?)mascota.Descripcion ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@estadoAdopcion", mascota.EstadoAdopcion);
+
+                        int rows = await command.ExecuteNonQueryAsync();
+                        return rows > 0;
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception($"Error de SQL al actualizar la mascota {mascota.IdMascota}: " + ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error inesperado al actualizar la mascota {mascota.IdMascota}: " + ex.Message, ex);
+            }
         }
 
-        // D - Delete / Eliminar mascota
+        // Delete
         public async Task<bool> EliminarAsync(int id)
         {
-            var mascota = await _context.Mascotas.FindAsync(id);
-            if (mascota == null) return false;
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    string query = "DELETE FROM tbl_mascota WHERE id_mascota = @id";
 
-            _context.Mascotas.Remove(mascota);
-            var result = await _context.SaveChangesAsync();
-            return result > 0;
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", id);
+                        int rows = await command.ExecuteNonQueryAsync();
+                        return rows > 0;
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception($"Error de SQL al eliminar la mascota {id}: " + ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error inesperado al eliminar la mascota {id}: " + ex.Message, ex);
+            }
         }
     }
 }
