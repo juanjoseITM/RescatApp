@@ -1,55 +1,54 @@
-using RescatApp.Identities;
-using RescatApp.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using RescatApp.Interfaces;
+using RescatApp.Models;
 
 namespace RescatApp.Services
 {
     public class MascotasServices
     {
-        private readonly MascotasRepository _repository;
+        private readonly IMascotasRepository _mascotasRepository;
 
-        public MascotasServices(MascotasRepository repository)
+        public MascotasServices(IMascotasRepository mascotasRepository)
         {
-            _repository = repository;
+            _mascotasRepository = mascotasRepository;
         }
 
         public async Task<List<Mascota>> ObtenerMascotasAsync(string? especie, string? tamano)
         {
-            return await _repository.ObtenerMascotasAsync(especie, tamano);
+            return await _mascotasRepository.ObtenerMascotasAsync(especie, tamano);
         }
 
         public async Task<Mascota?> ObtenerPorIdAsync(int id)
         {
-            return await _repository.ObtenerPorIdAsync(id);
+            return await _mascotasRepository.ObtenerPorIdAsync(id);
         }
 
-        public async Task<Mascota> CrearMascotaAsync(Mascota mascota)
+        public async Task<Mascota> CrearAsync(Mascota mascota)
         {
-            mascota.fecha_ingreso = DateTime.Now;
-            if (string.IsNullOrWhiteSpace(mascota.estado_adopcion))
+            // Si no se especifica fecha de ingreso, asigna la fecha actual
+            if (mascota.FechaIngreso == default)
             {
-                mascota.estado_adopcion = "Disponible";
+                mascota.FechaIngreso = DateTime.Now;
             }
 
-            int idGenerado = await _repository.CrearAsync(mascota);
-            mascota.id_mascota = idGenerado;
+            // Estado por defecto al publicar
+            if (string.IsNullOrWhiteSpace(mascota.EstadoAdopcion))
+            {
+                mascota.EstadoAdopcion = "Disponible";
+            }
+
+            int idGenerado = await _mascotasRepository.CrearAsync(mascota);
+            mascota.IdMascota = idGenerado;
             return mascota;
         }
 
-        public async Task<bool> ActualizarMascotaAsync(int id, Mascota mascota)
+        public async Task<bool> ActualizarAsync(Mascota mascota)
         {
-            var existente = await _repository.ObtenerPorIdAsync(id);
-            if (existente == null) return false;
-
-            mascota.id_mascota = id;
-            return await _repository.ActualizarAsync(mascota);
+            return await _mascotasRepository.ActualizarAsync(mascota);
         }
 
-        public async Task<bool> EliminarMascotaAsync(int id)
+        public async Task<bool> EliminarAsync(int id)
         {
-            return await _repository.EliminarAsync(id);
+            return await _mascotasRepository.EliminarAsync(id);
         }
     }
 }
