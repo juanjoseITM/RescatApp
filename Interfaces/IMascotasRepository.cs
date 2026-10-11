@@ -4,7 +4,7 @@ namespace RescatApp.Interfaces
 {
     public interface IMascotasRepository
     {
-        Task<List<Mascota>> ObtenerTodasAsync();
+        Task<List<Mascota>> ObtenerMascotasAsync(string? especie, string? tamano);
         Task<Mascota?> ObtenerPorIdAsync(int id);
         Task<int> CrearAsync(Mascota mascota);
         Task<bool> ActualizarAsync(Mascota mascota);
