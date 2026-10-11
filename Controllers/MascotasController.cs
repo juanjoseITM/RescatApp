@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using RescatApp.Identities;
+using RescatApp.Models;
 using RescatApp.Services;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace RescatApp.Controllers
 {
@@ -17,51 +15,111 @@ namespace RescatApp.Controllers
             _mascotasService = mascotasService;
         }
 
-        // GET: Listar con filtros
+        /// <summary>
+        /// Obtiene el listado de mascotas registradas, con opción de filtrar por especie o tamaño.
+        /// </summary>
         [HttpGet]
-        public async Task<ActionResult<List<Mascota>>> Get([FromQuery] string? especie, [FromQuery] string? tamano)
+        public async Task<IActionResult> ObtenerTodas([FromQuery] string? especie, [FromQuery] string? tamano)
         {
-            var mascotas = await _mascotasService.ObtenerMascotasAsync(especie, tamano);
-            return Ok(mascotas);
+            try
+            {
+                var mascotas = await _mascotasService.ObtenerMascotasAsync(especie, tamano);
+                return Ok(mascotas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al consultar las mascotas.", detalle = ex.Message });
+            }
         }
 
-        // GET: Consultar por ID
+        /// <summary>
+        /// Obtiene la información detallada de una mascota por su ID.
+        /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<Mascota>> GetById(int id)
+        public async Task<IActionResult> ObtenerPorId(int id)
         {
-            var mascota = await _mascotasService.ObtenerPorIdAsync(id);
-            if (mascota == null) return NotFound(new { mensaje = "Mascota no encontrada." });
-            return Ok(mascota);
+            try
+            {
+                var mascota = await _mascotasService.ObtenerPorIdAsync(id);
+                if (mascota == null)
+                {
+                    return NotFound(new { mensaje = $"No se encontró la mascota con ID {id}." });
+                }
+                return Ok(mascota);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al consultar la mascota.", detalle = ex.Message });
+            }
         }
 
-        // POST:Crear/Publicar mascota
+        /// <summary>
+        /// Registra/Publica una nueva mascota en el sistema.
+        /// </summary>
         [HttpPost]
-        public async Task<ActionResult<Mascota>> Post([FromBody] Mascota mascota)
+        public async Task<IActionResult> Crear([FromBody] Mascota mascota)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            var nuevaMascota = await _mascotasService.CrearMascotaAsync(mascota);
-            return CreatedAtAction(nameof(GetById), new { id = nuevaMascota.id_mascota }, nuevaMascota);
+            try
+            {
+                var nuevaMascota = await _mascotasService.CrearAsync(mascota);
+                return CreatedAtAction(nameof(ObtenerPorId), new { id = nuevaMascota.IdMascota }, nuevaMascota);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al guardar la mascota.", detalle = ex.Message });
+            }
         }
 
-        // PUT: Actualizar
+        /// <summary>
+        /// Actualiza los datos de una mascota existente.
+        /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, [FromBody] Mascota mascota)
+        public async Task<IActionResult> Actualizar(int id, [FromBody] Mascota mascota)
         {
-            var actualizado = await _mascotasService.ActualizarMascotaAsync(id, mascota);
-            if (!actualizado) return NotFound(new { mensaje = "Mascota no encontrada para actualizar." });
+            if (id != mascota.IdMascota)
+            {
+                return BadRequest(new { mensaje = "El ID de la ruta no coincide con el ID de la mascota." });
+            }
 
-            return NoContent();
+            try
+            {
+                bool actualizado = await _mascotasService.ActualizarAsync(mascota);
+                if (!actualizado)
+                {
+                    return NotFound(new { mensaje = $"No se pudo actualizar. La mascota con ID {id} no existe." });
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al actualizar la mascota.", detalle = ex.Message });
+            }
         }
 
-        // DELETE: Eliminar
+        /// <summary>
+        /// Elimina el registro de una mascota.
+        /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Eliminar(int id)
         {
-            var eliminado = await _mascotasService.EliminarMascotaAsync(id);
-            if (!eliminado) return NotFound(new { mensaje = "Mascota no encontrada para eliminar." });
-
-            return Ok(new { mensaje = "Mascota eliminada correctamente." });
+            try
+            {
+                bool eliminado = await _mascotasService.EliminarAsync(id);
+                if (!eliminado)
+                {
+                    return NotFound(new { mensaje = $"No se pudo eliminar. La mascota con ID {id} no existe." });
+                }
+                return Ok(new { mensaje = $"Mascota con ID {id} eliminada correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al eliminar la mascota.", detalle = ex.Message });
+            }
         }
     }
 }
