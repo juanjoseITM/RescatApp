@@ -1,28 +1,35 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using RescatApp.Repositories;
+using Microsoft.Data.SqlClient;
 
 namespace RescatApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class PruebaController : ControllerBase
-    {   
-        private readonly AppDbContext _context;
+    {
+        private readonly string _connectionString;
 
-        public PruebaController(AppDbContext context)
+        public PruebaController(IConfiguration configuration)
         {
-            _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? throw new InvalidOperationException("Cadena de conexión 'DefaultConnection' no encontrada.");
         }
 
-        [HttpGet]
+        [HttpGet("conexion")]
         public async Task<IActionResult> ProbarConexion()
         {
-            bool conectado = await _context.ProbarConexion();
-
-            if (conectado)
-                return Ok("Conexión exitosa con la base de datos.");
-
-            return BadRequest("No se pudo conectar con la base de datos.");
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    return Ok(new { mensaje = "Conexión a la base de datos exitosa mediante SQL Client." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al conectar con la base de datos.", detalle = ex.Message });
+            }
         }
     }
 }
