@@ -1,17 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace RescatApp.Models
+﻿namespace RescatApp.Models
 {
     public class Usuario
     {
-        [Key]
         public int IdUsuario { get; set; }
         public string Nombre { get; set; } = string.Empty;
-        public string Correo { get; set; } = string.Empty;
-        public string Contrasena { get; set; } = string.Empty;
-        public string Telefono { get; set; } = string.Empty;
-        public string Direccion { get; set; } = string.Empty;
-        public int IdTipoUsuario { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string? Telefono { get; set; }
+        public string? Clave { get; set; }
+        public string Rol { get; set; } = "Adoptante";
         public DateTime FechaRegistro { get; set; } = DateTime.Now;
     }
 }

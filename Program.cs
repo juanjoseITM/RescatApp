@@ -9,6 +9,7 @@ builder.Services.AddScoped<SeguimientosRepository>();
 builder.Services.AddScoped<SeguimientosServices>();
 builder.Services.AddScoped<ISolicitudesAdopcionRepository, SolicitudesAdopcionRepository>();
 builder.Services.AddScoped<IUsuariosRepository, UsuariosRepository>();
+builder.Services.AddScoped<IUsuariosRepository, UsuariosRepository>();
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -34,7 +35,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthorization();
 

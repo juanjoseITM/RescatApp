@@ -44,17 +44,17 @@ namespace RescatApp.Repositories
                                 mascotas.Add(new Mascota
                                 {
                                     IdMascota = reader.GetInt32(0),
-                                    Nombre = reader.GetString(1),
-                                    Especie = reader.GetString(2),
+                                    Nombre = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                                    Especie = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
                                     Raza = reader.IsDBNull(3) ? null : reader.GetString(3),
                                     EdadAprox = reader.IsDBNull(4) ? null : reader.GetInt32(4),
                                     Sexo = reader.IsDBNull(5) ? null : reader.GetString(5),
                                     Tamano = reader.IsDBNull(6) ? null : reader.GetString(6),
                                     EstadoSalud = reader.IsDBNull(7) ? null : reader.GetString(7),
                                     Descripcion = reader.IsDBNull(8) ? null : reader.GetString(8),
-                                    FechaIngreso = reader.GetDateTime(9),
-                                    EstadoAdopcion = reader.GetString(10),
-                                    IdRescatista = reader.GetInt32(11)
+                                    FechaIngreso = reader.IsDBNull(9) ? DateTime.Now : reader.GetDateTime(9),
+                                    EstadoAdopcion = reader.IsDBNull(10) ? string.Empty : reader.GetString(10),
+                                    IdRescatista = reader.IsDBNull(11) ? 0 : reader.GetInt32(11)
                                 });
                             }
                         }
@@ -73,7 +73,7 @@ namespace RescatApp.Repositories
             return mascotas;
         }
 
-        //Read (mascota por ID)
+        // Read (Mascota por ID)
         public async Task<Mascota?> ObtenerPorIdAsync(int id)
         {
             try
@@ -98,17 +98,17 @@ namespace RescatApp.Repositories
                                 return new Mascota
                                 {
                                     IdMascota = reader.GetInt32(0),
-                                    Nombre = reader.GetString(1),
-                                    Especie = reader.GetString(2),
+                                    Nombre = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                                    Especie = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
                                     Raza = reader.IsDBNull(3) ? null : reader.GetString(3),
                                     EdadAprox = reader.IsDBNull(4) ? null : reader.GetInt32(4),
                                     Sexo = reader.IsDBNull(5) ? null : reader.GetString(5),
                                     Tamano = reader.IsDBNull(6) ? null : reader.GetString(6),
                                     EstadoSalud = reader.IsDBNull(7) ? null : reader.GetString(7),
                                     Descripcion = reader.IsDBNull(8) ? null : reader.GetString(8),
-                                    FechaIngreso = reader.GetDateTime(9),
-                                    EstadoAdopcion = reader.GetString(10),
-                                    IdRescatista = reader.GetInt32(11)
+                                    FechaIngreso = reader.IsDBNull(9) ? DateTime.Now : reader.GetDateTime(9),
+                                    EstadoAdopcion = reader.IsDBNull(10) ? string.Empty : reader.GetString(10),
+                                    IdRescatista = reader.IsDBNull(11) ? 0 : reader.GetInt32(11)
                                 };
                             }
                         }

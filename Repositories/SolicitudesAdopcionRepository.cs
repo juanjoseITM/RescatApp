@@ -22,7 +22,7 @@ namespace RescatApp.Repositories
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    string query = @"SELECT id_solicitud, id_mascota, id_adoptante, fecha_solicitud, estado_solicitud, observaciones 
+                    string query = @"SELECT id_solicitud, id_mascota, id_adoptante, fecha_solicitud, estado_solicitud 
                                      FROM tbl_solicitud_adopcion";
 
                     using (var command = new SqlCommand(query, connection))
@@ -35,9 +35,9 @@ namespace RescatApp.Repositories
                                 IdSolicitud = reader.GetInt32(0),
                                 IdMascota = reader.GetInt32(1),
                                 IdAdoptante = reader.GetInt32(2),
-                                FechaSolicitud = reader.GetDateTime(3),
-                                EstadoSolicitud = reader.GetString(4),
-                                Observaciones = reader.IsDBNull(5) ? null : reader.GetString(5)
+                                FechaSolicitud = reader.IsDBNull(3) ? DateTime.Now : reader.GetDateTime(3),
+                                EstadoSolicitud = reader.IsDBNull(4) ? "Pendiente" : reader.GetString(4),
+                                Observaciones = null
                             });
                         }
                     }
@@ -57,7 +57,7 @@ namespace RescatApp.Repositories
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    string query = @"SELECT id_solicitud, id_mascota, id_adoptante, fecha_solicitud, estado_solicitud, observaciones 
+                    string query = @"SELECT id_solicitud, id_mascota, id_adoptante, fecha_solicitud, estado_solicitud 
                                      FROM tbl_solicitud_adopcion WHERE id_solicitud = @id";
 
                     using (var command = new SqlCommand(query, connection))
@@ -72,9 +72,9 @@ namespace RescatApp.Repositories
                                     IdSolicitud = reader.GetInt32(0),
                                     IdMascota = reader.GetInt32(1),
                                     IdAdoptante = reader.GetInt32(2),
-                                    FechaSolicitud = reader.GetDateTime(3),
-                                    EstadoSolicitud = reader.GetString(4),
-                                    Observaciones = reader.IsDBNull(5) ? null : reader.GetString(5)
+                                    FechaSolicitud = reader.IsDBNull(3) ? DateTime.Now : reader.GetDateTime(3),
+                                    EstadoSolicitud = reader.IsDBNull(4) ? "Pendiente" : reader.GetString(4),
+                                    Observaciones = null
                                 };
                             }
                         }
@@ -96,7 +96,7 @@ namespace RescatApp.Repositories
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     await connection.OpenAsync();
-                    string query = @"SELECT id_solicitud, id_mascota, id_adoptante, fecha_solicitud, estado_solicitud, observaciones 
+                    string query = @"SELECT id_solicitud, id_mascota, id_adoptante, fecha_solicitud, estado_solicitud 
                                      FROM tbl_solicitud_adopcion WHERE id_adoptante = @idUsuario";
 
                     using (var command = new SqlCommand(query, connection))
@@ -111,9 +111,9 @@ namespace RescatApp.Repositories
                                     IdSolicitud = reader.GetInt32(0),
                                     IdMascota = reader.GetInt32(1),
                                     IdAdoptante = reader.GetInt32(2),
-                                    FechaSolicitud = reader.GetDateTime(3),
-                                    EstadoSolicitud = reader.GetString(4),
-                                    Observaciones = reader.IsDBNull(5) ? null : reader.GetString(5)
+                                    FechaSolicitud = reader.IsDBNull(3) ? DateTime.Now : reader.GetDateTime(3),
+                                    EstadoSolicitud = reader.IsDBNull(4) ? "Pendiente" : reader.GetString(4),
+                                    Observaciones = null
                                 });
                             }
                         }
@@ -127,36 +127,46 @@ namespace RescatApp.Repositories
             return lista;
         }
 
-        public async Task<int> CrearAsync(SolicitudAdopcion solicitud)
+public async Task<int> CrearAsync(SolicitudAdopcion solicitud)
+{
+    try
+    {
+        using (var connection = new SqlConnection(_connectionString))
         {
-            try
-            {
-                using (var connection = new SqlConnection(_connectionString))
-                {
-                    await connection.OpenAsync();
-                    string query = @"INSERT INTO tbl_solicitud_adopcion (id_mascota, id_adoptante, fecha_solicitud, estado_solicitud, observaciones)
-                                     VALUES (@idMascota, @idAdoptante, @fecha, @estado, @observaciones);
-                                     SELECT SCOPE_IDENTITY();";
+            await connection.OpenAsync();
 
-                    using (var command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@idMascota", solicitud.IdMascota);
-                        command.Parameters.AddWithValue("@idAdoptante", solicitud.IdAdoptante);
-                        command.Parameters.AddWithValue("@fecha", solicitud.FechaSolicitud);
-                        command.Parameters.AddWithValue("@estado", solicitud.EstadoSolicitud);
-                        command.Parameters.AddWithValue("@observaciones", (object?)solicitud.Observaciones ?? DBNull.Value);
-
-                        var newId = await command.ExecuteScalarAsync();
-                        return Convert.ToInt32(newId);
-                    }
-                }
-            }
-            catch (Exception ex)
+            // Determinar el ID del estado según el texto recibido
+            int idEstado = solicitud.EstadoSolicitud?.ToLower() switch
             {
-                throw new Exception("Error al crear la solicitud de adopción: " + ex.Message, ex);
+                "pendiente" => 1,
+                "aprobada" => 2,
+                "rechazada" => 3,
+                _ => int.TryParse(solicitud.EstadoSolicitud, out int parsedId) ? parsedId : 1
+            };
+
+            string query = @"INSERT INTO tbl_solicitud_adopcion 
+                             (id_mascota, id_adoptante, fecha_solicitud, estado_solicitud)
+                             VALUES 
+                             (@idMascota, @idAdoptante, @fechaSolicitud, @estadoSolicitud);
+                             SELECT SCOPE_IDENTITY();";
+
+            using (var command = new SqlCommand(query, connection))
+            {
+                command.Parameters.Add("@idMascota", System.Data.SqlDbType.Int).Value = solicitud.IdMascota;
+                command.Parameters.Add("@idAdoptante", System.Data.SqlDbType.Int).Value = solicitud.IdAdoptante;
+                command.Parameters.Add("@fechaSolicitud", System.Data.SqlDbType.DateTime).Value = solicitud.FechaSolicitud;
+                command.Parameters.Add("@estadoSolicitud", System.Data.SqlDbType.Int).Value = idEstado;
+
+                var newId = await command.ExecuteScalarAsync();
+                return Convert.ToInt32(newId);
             }
         }
-
+    }
+    catch (Exception ex)
+    {
+        throw new Exception("Error al crear la solicitud de adopción: " + ex.Message, ex);
+    }
+}
         public async Task<bool> ActualizarEstadoAsync(int idSolicitud, string nuevoEstado)
         {
             try

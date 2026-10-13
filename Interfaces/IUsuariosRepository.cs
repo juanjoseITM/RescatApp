@@ -8,5 +8,8 @@ namespace RescatApp.Interfaces
         Task<Usuario?> ObtenerPorIdAsync(int id);
         Task<Usuario?> ObtenerPorEmailAsync(string email);
         Task<int> CrearAsync(Usuario usuario);
+        Task<bool> ActualizarAsync(Usuario usuario);
+        Task<bool> EliminarAsync(int id);
+        Task<Usuario?> ValidarCredencialesAsync(string email, string clave);
     }
 }
