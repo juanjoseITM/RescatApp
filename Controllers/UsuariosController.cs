@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RescatApp.Interfaces;
 using RescatApp.Models;
+using RescatApp.Services;
 
 namespace RescatApp.Controllers
 {
@@ -9,10 +10,12 @@ namespace RescatApp.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly IUsuariosRepository _usuariosRepository;
+        private readonly JwtService _jwtService;
 
-        public UsuariosController(IUsuariosRepository usuariosRepository)
+        public UsuariosController(IUsuariosRepository usuariosRepository, JwtService jwtService)
         {
             _usuariosRepository = usuariosRepository;
+            _jwtService = jwtService;
         }
 
         [HttpGet]
@@ -74,7 +77,21 @@ namespace RescatApp.Controllers
                 if (usuario == null)
                     return Unauthorized(new { mensaje = "Credenciales inválidas. Verifica tu correo y contraseña." });
 
-                return Ok(new { mensaje = "Inicio de sesión exitoso.", usuario });
+                // Generar el token JWT
+                var token = _jwtService.GenerarToken(usuario);
+
+                return Ok(new
+                {
+                    mensaje = "Inicio de sesión exitoso.",
+                    token = token,
+                    usuario = new
+                    {
+                        usuario.IdUsuario,
+                        usuario.Nombre,
+                        usuario.Email,
+                        usuario.Rol
+                    }
+                });
             }
             catch (Exception ex)
             {
