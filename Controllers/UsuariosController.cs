@@ -51,6 +51,23 @@ namespace RescatApp.Controllers
             }
         }
 
+        [HttpGet("email/{email}")]
+        public async Task<IActionResult> GetUsuarioPorEmail(string email)
+        {
+            try
+            {
+                var usuario = await _usuariosService.ObtenerPorEmailAsync(email);
+                if (usuario == null)
+                    return NotFound(new { mensaje = $"Usuario con Correo {email} no encontrado." });
+
+                return Ok(usuario);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al consultar el usuario.", detalle = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CrearUsuario([FromBody] Usuario usuario)
         {

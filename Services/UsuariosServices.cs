@@ -30,5 +30,12 @@ namespace RescatApp.Services
 
         }
 
+        public async Task<Usuario?> ObtenerPorEmailAsync(string email)
+        {
+            
+            return await _usuariosRepository.ObtenerPorEmailAsync(email);
+
+        }
+
     }
 }
