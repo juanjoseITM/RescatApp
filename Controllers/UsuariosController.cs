@@ -10,12 +10,14 @@ namespace RescatApp.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly IUsuariosRepository _usuariosRepository;
+        private readonly UsuariosServices _usuariosService;
         private readonly JwtService _jwtService;
 
-        public UsuariosController(IUsuariosRepository usuariosRepository, JwtService jwtService)
+        public UsuariosController(IUsuariosRepository usuariosRepository, JwtService jwtService, UsuariosServices usuariosServices)
         {
             _usuariosRepository = usuariosRepository;
             _jwtService = jwtService;
+            _usuariosService = usuariosServices;
         }
 
         [HttpGet]
@@ -23,7 +25,7 @@ namespace RescatApp.Controllers
         {
             try
             {
-                var usuarios = await _usuariosRepository.ObtenerTodosAsync();
+                var usuarios = await _usuariosService.ObtenerTodosAsync();
                 return Ok(usuarios);
             }
             catch (Exception ex)
@@ -37,7 +39,7 @@ namespace RescatApp.Controllers
         {
             try
             {
-                var usuario = await _usuariosRepository.ObtenerPorIdAsync(id);
+                var usuario = await _usuariosService.ObtenerPorIdAsync(id);
                 if (usuario == null)
                     return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
 
