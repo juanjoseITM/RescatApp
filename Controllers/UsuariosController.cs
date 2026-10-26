@@ -34,7 +34,7 @@ namespace RescatApp.Controllers
             }
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetUsuarioPorId(int id)
         {
             try
@@ -51,7 +51,7 @@ namespace RescatApp.Controllers
             }
         }
 
-        [HttpGet("email/{email}")]
+        [HttpGet("{email}")]
         public async Task<IActionResult> GetUsuarioPorEmail(string email)
         {
             try
@@ -163,7 +163,7 @@ namespace RescatApp.Controllers
 
                 }
 
-                return Ok(new { mensaje = "Usuario actualizado correctamente.", usuario = usuario}); 
+                return NoContent();
                 
             }
             catch(Exception ex)
@@ -175,7 +175,7 @@ namespace RescatApp.Controllers
 
         }
     
-        [HttpDelete("eliminar/{id}")]
+        [HttpDelete("{id}")]
         public async Task<IActionResult> EliminarUsuario(int id)
         {
             try
