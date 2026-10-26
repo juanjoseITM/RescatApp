@@ -102,7 +102,7 @@ namespace RescatApp.Repositories
             return null;
         }
 
-    public async Task<int> CrearAsync(Usuario usuario)
+        public async Task<int> CrearAsync(Usuario usuario)
     {
     try
     {
@@ -111,13 +111,7 @@ namespace RescatApp.Repositories
             await connection.OpenAsync();
 
             // Mapear el rol de texto a su ID numérico correspondiente
-            int idTipoUsuario = usuario.Rol?.ToLower() switch
-            {
-                "adoptante" => 1,
-                "rescatista" => 2,
-                "admin" or "administrador" => 3,
-                _ => int.TryParse(usuario.Rol, out int parsedId) ? parsedId : 1
-            };
+            int idTipoUsuario = ObtenerIdTipoUsuario(usuario.Rol);
 
             string query = @"INSERT INTO tbl_usuario (nombre, correo, telefono, contrasena, tipo_usuario, fecha_registro)
                              VALUES (@nombre, @correo, @telefono, @contrasena, @tipoUsuario, GETDATE());
@@ -159,7 +153,7 @@ namespace RescatApp.Repositories
                         command.Parameters.AddWithValue("@nombre", usuario.Nombre);
                         command.Parameters.AddWithValue("@correo", usuario.Email);
                         command.Parameters.AddWithValue("@telefono", (object?)usuario.Telefono ?? DBNull.Value);
-                        command.Parameters.AddWithValue("@tipoUsuario", usuario.Rol);
+                        command.Parameters.AddWithValue("@tipoUsuario", ObtenerIdTipoUsuario(usuario.Rol));
 
                         int rows = await command.ExecuteNonQueryAsync();
                         return rows > 0;
@@ -229,25 +223,37 @@ namespace RescatApp.Repositories
         }
 
         private static Usuario MapearUsuario(SqlDataReader reader)
-{
-    int tipoInt = reader.IsDBNull(4) ? 1 : reader.GetInt32(4);
-    string rolTexto = tipoInt switch
-    {
-        1 => "Adoptante",
-        2 => "Rescatista",
-        3 => "Administrador",
-        _ => "Adoptante"
-    };
+        {
+            int tipoInt = reader.IsDBNull(4) ? 1 : reader.GetInt32(4);
+            string rolTexto = tipoInt switch
+            {
+                1 => "Adoptante",
+                2 => "Rescatista",
+                3 => "Administrador",
+                _ => "Adoptante"
+            };
 
-    return new Usuario
-    {
-        IdUsuario = reader.GetInt32(0),
-        Nombre = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
-        Email = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-        Telefono = reader.IsDBNull(3) ? null : reader.GetString(3),
-        Rol = rolTexto,
-        FechaRegistro = reader.IsDBNull(5) ? DateTime.Now : reader.GetDateTime(5)
-    };
-}
+            return new Usuario
+            {
+                IdUsuario = reader.GetInt32(0),
+                Nombre = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                Email = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                Telefono = reader.IsDBNull(3) ? null : reader.GetString(3),
+                Rol = rolTexto,
+                FechaRegistro = reader.IsDBNull(5) ? DateTime.Now : reader.GetDateTime(5)
+            };
+        }
+    
+        private static int ObtenerIdTipoUsuario(string rol)
+        {
+            return rol?.ToLower() switch
+            {
+                "adoptante" => 1,
+                "rescatista" => 2,
+                "admin" or "administrador" => 3,
+                _ => 1 // Valor por defecto si no coincide con ningún rol conocido
+            };
+
+        }
     }
 }

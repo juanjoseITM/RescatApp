@@ -128,6 +128,51 @@ namespace RescatApp.Controllers
                 return StatusCode(500, new { mensaje = "Error interno al autenticar.", detalle = ex.Message });
             }
         }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> ActualizarUsuario(int id, [FromBody] Usuario usuario){
+
+            try
+            {
+                
+                var existencia = await _usuariosService.ObtenerPorIdAsync(id);
+
+                if (existencia == null){
+
+                    return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado."});
+
+                }
+
+                // Validamos el correo electrónico para asegurarnos de que no se duplique con otro usuario
+                var otro = await _usuariosService.ObtenerPorEmailAsync(usuario.Email);
+
+                if (otro != null && otro.IdUsuario != id){
+
+                    return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario."});
+
+                }
+
+                usuario.IdUsuario = id; // Aseguramos que el ID del usuario a actualizar sea el correcto
+
+                var actualizado = await _usuariosService.ActualizarAsync(usuario);
+
+                if (!actualizado){
+
+                    return StatusCode(500, new { mensaje = "Error interno al actualizar el usuario."});
+
+                }
+
+                return Ok(new { mensaje = "Usuario actualizado correctamente.", usuario = usuario}); 
+                
+            }
+            catch(Exception ex)
+            {
+                
+                return StatusCode(500, new{ mensaje = "Error interno al actualizar el usuario.", detalle = ex.Message });
+
+            }
+
+        }
     }
 
     public class LoginRequest
