@@ -11,13 +11,11 @@ namespace RescatApp.Controllers
     [Route("api/[controller]")]
     public class UsuariosController : ControllerBase
     {
-        private readonly IUsuariosRepository _usuariosRepository;
         private readonly UsuariosServices _usuariosService;
         private readonly JwtService _jwtService;
 
-        public UsuariosController(IUsuariosRepository usuariosRepository, JwtService jwtService, UsuariosServices usuariosServices)
+        public UsuariosController(JwtService jwtService, UsuariosServices usuariosServices)
         {
-            _usuariosRepository = usuariosRepository;
             _jwtService = jwtService;
             _usuariosService = usuariosServices;
         }
@@ -105,7 +103,7 @@ namespace RescatApp.Controllers
         {
             try
             {
-                var usuario = await _usuariosRepository.ValidarCredencialesAsync(request.Email, request.Clave);
+                var usuario = await _usuariosService.ValidarCredencialesAsync(request.Email, request.Clave);
                 if (usuario == null)
                     return Unauthorized(new { mensaje = "Credenciales inválidas. Verifica tu correo y contraseña." });
 

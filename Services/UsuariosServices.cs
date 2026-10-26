@@ -44,5 +44,11 @@ namespace RescatApp.Services
 
         }
 
+        public async Task<Usuario?> ValidarCredencialesAsync(string email, string clave)
+        {
+            
+            return await _usuariosRepository.ValidarCredencialesAsync(email, clave);
+
+        } 
     }
 }
