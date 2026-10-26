@@ -11,10 +11,10 @@ namespace RescatApp.Controllers
     [Route("api/[controller]")]
     public class UsuariosController : ControllerBase
     {
-        private readonly UsuariosServices _usuariosService;
+        private readonly IUsuariosService _usuariosService;
         private readonly JwtService _jwtService;
 
-        public UsuariosController(JwtService jwtService, UsuariosServices usuariosServices)
+        public UsuariosController(JwtService jwtService, IUsuariosService usuariosServices)
         {
             _jwtService = jwtService;
             _usuariosService = usuariosServices;

@@ -2,7 +2,7 @@
 using RescatApp.Models;
 namespace RescatApp.Services
 {
-    public class UsuariosServices
+    public class UsuariosServices : IUsuariosService
     {
         
         // El repositorio que el servicio va a usar
