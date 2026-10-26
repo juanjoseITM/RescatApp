@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders.Physical;
 using RescatApp.Interfaces;
 using RescatApp.Models;
 using RescatApp.Services;
@@ -73,13 +75,24 @@ namespace RescatApp.Controllers
         {
             try
             {
-                if (!ModelState.IsValid)
+                if (!ModelState.IsValid){
                     return BadRequest(ModelState);
+                }
 
-                int nuevoId = await _usuariosRepository.CrearAsync(usuario);
+                var existente = await _usuariosService.ObtenerPorEmailAsync(usuario.Email);
+
+                if (existente != null)
+                {
+
+                    return Conflict(new { mensaje = $"El usuario {usuario.Nombre} ya existe con email {usuario.Email}"});
+                    
+                }
+
+                int nuevoId = await _usuariosService.CrearAsync(usuario);
                 usuario.IdUsuario = nuevoId;
 
                 return CreatedAtAction(nameof(GetUsuarioPorId), new { id = nuevoId }, usuario);
+
             }
             catch (Exception ex)
             {

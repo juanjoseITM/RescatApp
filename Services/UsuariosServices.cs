@@ -37,5 +37,12 @@ namespace RescatApp.Services
 
         }
 
+        public async Task<int> CrearAsync(Usuario usuario)
+        {
+            
+            return await _usuariosRepository.CrearAsync(usuario);
+
+        }
+
     }
 }

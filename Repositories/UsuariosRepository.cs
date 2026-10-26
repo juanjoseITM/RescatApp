@@ -102,8 +102,8 @@ namespace RescatApp.Repositories
             return null;
         }
 
-        public async Task<int> CrearAsync(Usuario usuario)
-{
+    public async Task<int> CrearAsync(Usuario usuario)
+    {
     try
     {
         using (var connection = new SqlConnection(_connectionString))
