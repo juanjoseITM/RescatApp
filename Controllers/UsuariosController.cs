@@ -130,7 +130,8 @@ namespace RescatApp.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> ActualizarUsuario(int id, [FromBody] Usuario usuario){
+        public async Task<IActionResult> ActualizarUsuario(int id, [FromBody] Usuario usuario)
+        {
 
             try
             {
@@ -173,6 +174,41 @@ namespace RescatApp.Controllers
             }
 
         }
+    
+        [HttpDelete("eliminar/{id}")]
+        public async Task<IActionResult> EliminarUsuario(int id)
+        {
+            try
+            {
+                
+                var existencia = await _usuariosService.ObtenerPorIdAsync(id);
+
+                if (existencia == null){
+
+                    return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado."});
+
+                }
+
+                var eliminado = await _usuariosService.EliminarAsync(id);
+
+                if (!eliminado){
+
+                    return StatusCode(500, new { mensaje = "Error interno al eliminar el usuario."});
+
+                }
+
+                
+                return Ok(new { mensaje = $"Usuario con ID {id} eliminado correctamente." });
+                
+            }
+            catch(Exception ex)
+            {
+                
+                return StatusCode(500, new { mensaje = "Error interno al eliminar el usuario.", detalle = ex.Message });
+                
+            }
+        }
+    
     }
 
     public class LoginRequest

@@ -55,5 +55,11 @@ namespace RescatApp.Services
         {
             return await _usuariosRepository.ActualizarAsync(usuario);
         }
+    
+        public async Task<bool> EliminarAsync(int id)
+        {
+            return await _usuariosRepository.EliminarAsync(id);
+        }
+
     }
 }

@@ -103,38 +103,38 @@ namespace RescatApp.Repositories
         }
 
         public async Task<int> CrearAsync(Usuario usuario)
-    {
-    try
-    {
-        using (var connection = new SqlConnection(_connectionString))
         {
-            await connection.OpenAsync();
-
-            // Mapear el rol de texto a su ID numérico correspondiente
-            int idTipoUsuario = ObtenerIdTipoUsuario(usuario.Rol);
-
-            string query = @"INSERT INTO tbl_usuario (nombre, correo, telefono, contrasena, tipo_usuario, fecha_registro)
-                             VALUES (@nombre, @correo, @telefono, @contrasena, @tipoUsuario, GETDATE());
-                             SELECT SCOPE_IDENTITY();";
-
-            using (var command = new SqlCommand(query, connection))
+            try
             {
-                command.Parameters.AddWithValue("@nombre", usuario.Nombre);
-                command.Parameters.AddWithValue("@correo", usuario.Email);
-                command.Parameters.AddWithValue("@telefono", (object?)usuario.Telefono ?? DBNull.Value);
-                command.Parameters.AddWithValue("@contrasena", usuario.Clave ?? "123456");
-                command.Parameters.AddWithValue("@tipoUsuario", idTipoUsuario);
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
 
-                var newId = await command.ExecuteScalarAsync();
-                return Convert.ToInt32(newId);
+                    // Mapear el rol de texto a su ID numérico correspondiente
+                    int idTipoUsuario = ObtenerIdTipoUsuario(usuario.Rol);
+
+                    string query = @"INSERT INTO tbl_usuario (nombre, correo, telefono, contrasena, tipo_usuario, fecha_registro)
+                                    VALUES (@nombre, @correo, @telefono, @contrasena, @tipoUsuario, GETDATE());
+                                    SELECT SCOPE_IDENTITY();";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@nombre", usuario.Nombre);
+                        command.Parameters.AddWithValue("@correo", usuario.Email);
+                        command.Parameters.AddWithValue("@telefono", (object?)usuario.Telefono ?? DBNull.Value);
+                        command.Parameters.AddWithValue("@contrasena", usuario.Clave ?? "123456");
+                        command.Parameters.AddWithValue("@tipoUsuario", idTipoUsuario);
+
+                        var newId = await command.ExecuteScalarAsync();
+                        return Convert.ToInt32(newId);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al crear el usuario: " + ex.Message, ex);
             }
         }
-    }
-    catch (Exception ex)
-    {
-        throw new Exception("Error al crear el usuario: " + ex.Message, ex);
-    }
-}
 
         public async Task<bool> ActualizarAsync(Usuario usuario)
         {
