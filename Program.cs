@@ -58,6 +58,8 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1" 
     });
 
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "RescatApp.xml"));
+
     // Definición directa del esquema Bearer
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {

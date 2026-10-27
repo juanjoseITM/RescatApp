@@ -20,6 +20,9 @@ namespace RescatApp.Controllers
             _usuariosService = usuariosServices;
         }
 
+        /// <summary>
+        /// Obtiene la lista de todos los usuarios registrados.
+        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetUsuarios()
         {
@@ -34,6 +37,9 @@ namespace RescatApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Obtiene un usuario por su ID.
+        /// </summary>
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetUsuarioPorId(int id)
         {
@@ -51,6 +57,9 @@ namespace RescatApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Obtiene un usuario por su correo electrónico.
+        /// </summary>
         [HttpGet("{email}")]
         public async Task<IActionResult> GetUsuarioPorEmail(string email)
         {
@@ -68,6 +77,9 @@ namespace RescatApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Crea un nuevo usuario.
+        /// </summary>
         [HttpPost]
         public async Task<IActionResult> CrearUsuario([FromBody] Usuario usuario)
         {
@@ -98,6 +110,9 @@ namespace RescatApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Autentica a un usuario y genera un token JWT.
+        /// </summary>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -129,6 +144,9 @@ namespace RescatApp.Controllers
             }
         }
 
+        /// <summary>
+        ///  Actualiza la información de un usuario existente.
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<IActionResult> ActualizarUsuario(int id, [FromBody] Usuario usuario)
         {
@@ -174,7 +192,10 @@ namespace RescatApp.Controllers
             }
 
         }
-    
+
+        /// <summary>
+        /// Elimina un usuario existente por su ID.
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> EliminarUsuario(int id)
         {
