@@ -46,5 +46,11 @@ namespace RescatApp.Services
             return await _usuariosRepository.EliminarAsync(id);
         }
 
+        public async Task<bool> EmailEnUsoAsync(string email, int? idExcluir = null)
+        {
+            var otro = await _usuariosRepository.ObtenerPorEmailAsync(email);
+            return otro != null && otro.IdUsuario != idExcluir;
+        }
+
     }
 }

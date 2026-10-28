@@ -87,14 +87,10 @@ namespace RescatApp.Controllers
                 {
                     return BadRequest(ModelState);
                 }
-
-                var existente = await _usuariosService.ObtenerPorEmailAsync(usuario.Email);
-
-                if (existente != null)
+                
+                if (await _usuariosService.EmailEnUsoAsync(usuario.Email))
                 {
-
-                    return Conflict(new { mensaje = $"El usuario {usuario.Nombre} ya existe con email {usuario.Email}" });
-
+                    return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario." });
                 }
 
                 int nuevoId = await _usuariosService.CrearAsync(usuario);
@@ -162,14 +158,9 @@ namespace RescatApp.Controllers
 
                 }
 
-                // Validamos el correo electrónico para asegurarnos de que no se duplique con otro usuario
-                var otro = await _usuariosService.ObtenerPorEmailAsync(usuario.Email);
-
-                if (otro != null && otro.IdUsuario != id)
+                if (await _usuariosService.EmailEnUsoAsync(usuario.Email, id))
                 {
-
                     return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario." });
-
                 }
 
                 usuario.IdUsuario = id; // Aseguramos que el ID del usuario a actualizar sea el correcto
