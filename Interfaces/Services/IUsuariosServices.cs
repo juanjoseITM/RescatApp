@@ -2,7 +2,7 @@ using RescatApp.Models;
 
 namespace RescatApp.Interfaces
 {
-    public interface IUsuariosService
+    public interface IUsuariosServices
     {
         Task<List<Usuario>> ObtenerTodosAsync();
         Task<Usuario?> ObtenerPorIdAsync(int id);

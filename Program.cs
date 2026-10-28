@@ -22,8 +22,7 @@ builder.Services.AddScoped<SeguimientosRepository>();
 builder.Services.AddScoped<SeguimientosServices>();
 builder.Services.AddScoped<JwtService>();
 
-// Usuarios: el controlador pide IUsuariosService y recibe UsuariosServices (inyección de dependencias)
-builder.Services.AddScoped<IUsuariosService, UsuariosServices>();
+builder.Services.AddScoped<IUsuariosServices, UsuariosServices>();
 
 // 3. Configuración de Autenticación JWT
 var jwtKey = builder.Configuration["Jwt:Key"] 
