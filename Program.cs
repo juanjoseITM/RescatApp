@@ -22,6 +22,9 @@ builder.Services.AddScoped<SeguimientosRepository>();
 builder.Services.AddScoped<SeguimientosServices>();
 builder.Services.AddScoped<JwtService>();
 
+builder.Services.AddScoped<RefugioRepository>();
+builder.Services.AddScoped<RefugioService>();
+
 // 3. Configuración de Autenticación JWT
 var jwtKey = builder.Configuration["Jwt:Key"] 
     ?? throw new InvalidOperationException("La clave JWT no está configurada en appsettings.json.");
