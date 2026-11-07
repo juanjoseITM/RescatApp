@@ -12,7 +12,9 @@ namespace RescatApp.Services
             _mascotasRepository = mascotasRepository;
         }
 
-        public async Task<List<Mascota>> ObtenerMascotasAsync(string? especie, string? tamano)
+        // Métodos principales esperados por MascotasController:
+
+        public async Task<List<Mascota>> ObtenerMascotasAsync(string? especie = null, string? tamano = null)
         {
             return await _mascotasRepository.ObtenerMascotasAsync(especie, tamano);
         }
@@ -22,23 +24,15 @@ namespace RescatApp.Services
             return await _mascotasRepository.ObtenerPorIdAsync(id);
         }
 
-        public async Task<Mascota> CrearAsync(Mascota mascota)
+        public async Task<bool> CrearAsync(Mascota mascota)
         {
-            // Si no se especifica fecha de ingreso, asigna la fecha actual
-            if (mascota.FechaIngreso == default)
-            {
-                mascota.FechaIngreso = DateTime.Now;
-            }
-
-            // Estado por defecto al publicar
             if (string.IsNullOrWhiteSpace(mascota.EstadoAdopcion))
             {
                 mascota.EstadoAdopcion = "Disponible";
             }
 
-            int idGenerado = await _mascotasRepository.CrearAsync(mascota);
-            mascota.IdMascota = idGenerado;
-            return mascota;
+            var idGenerado = await _mascotasRepository.CrearAsync(mascota);
+            return idGenerado > 0;
         }
 
         public async Task<bool> ActualizarAsync(Mascota mascota)
@@ -50,5 +44,18 @@ namespace RescatApp.Services
         {
             return await _mascotasRepository.EliminarAsync(id);
         }
+
+        // Alias compatibles por si alguna otra clase los llama con "Mascota":
+        public async Task<List<Mascota>> ObtenerTodasAsync(string? especie = null, string? tamano = null)
+            => await ObtenerMascotasAsync(especie, tamano);
+
+        public async Task<bool> CrearMascotaAsync(Mascota mascota)
+            => await CrearAsync(mascota);
+
+        public async Task<bool> ActualizarMascotaAsync(Mascota mascota)
+            => await ActualizarAsync(mascota);
+
+        public async Task<bool> EliminarMascotaAsync(int id)
+            => await EliminarAsync(id);
     }
 }

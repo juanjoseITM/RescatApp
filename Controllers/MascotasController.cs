@@ -66,8 +66,13 @@ namespace RescatApp.Controllers
 
             try
             {
-                var nuevaMascota = await _mascotasService.CrearAsync(mascota);
-                return CreatedAtAction(nameof(ObtenerPorId), new { id = nuevaMascota.IdMascota }, nuevaMascota);
+                bool creado = await _mascotasService.CrearAsync(mascota);
+                if (!creado)
+                {
+                    return BadRequest(new { mensaje = "No se pudo registrar la mascota." });
+                }
+
+                return CreatedAtAction(nameof(ObtenerPorId), new { id = mascota.IdMascota }, mascota);
             }
             catch (Exception ex)
             {
