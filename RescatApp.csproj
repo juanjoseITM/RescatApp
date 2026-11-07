@@ -24,4 +24,11 @@
     <Folder Include="Utilities\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="RescatApp.Tests\**" />
+    <Content Remove="RescatApp.Tests\**" />
+    <EmbeddedResource Remove="RescatApp.Tests\**" />
+    <None Remove="RescatApp.Tests\**" />
+  </ItemGroup>
+
 </Project>
