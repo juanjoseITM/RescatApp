@@ -24,15 +24,8 @@ namespace RescatApp.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerUsuarios()
         {
-            try
-            {
-                var usuarios = await _usuariosService.ObtenerTodosAsync();
-                return Ok(usuarios);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error interno al consultar los usuarios.", detalle = ex.Message });
-            }
+            var usuarios = await _usuariosService.ObtenerTodosAsync();
+            return Ok(usuarios);
         }
 
         /// <summary>
@@ -41,18 +34,11 @@ namespace RescatApp.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> ObtenerUsuarioPorId(int id)
         {
-            try
-            {
-                var usuario = await _usuariosService.ObtenerPorIdAsync(id);
-                if (usuario == null)
-                    return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
+            var usuario = await _usuariosService.ObtenerPorIdAsync(id);
+            if (usuario == null)
+                return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
 
-                return Ok(usuario);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error al consultar el usuario.", detalle = ex.Message });
-            }
+            return Ok(usuario);
         }
 
         /// <summary>
@@ -61,18 +47,11 @@ namespace RescatApp.Controllers
         [HttpGet("{email}")]
         public async Task<IActionResult> ObtenerUsuarioPorEmail(string email)
         {
-            try
-            {
-                var usuario = await _usuariosService.ObtenerPorEmailAsync(email);
-                if (usuario == null)
-                    return NotFound(new { mensaje = $"Usuario con Correo {email} no encontrado." });
+            var usuario = await _usuariosService.ObtenerPorEmailAsync(email);
+            if (usuario == null)
+                return NotFound(new { mensaje = $"Usuario con Correo {email} no encontrado." });
 
-                return Ok(usuario);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error al consultar el usuario.", detalle = ex.Message });
-            }
+            return Ok(usuario);
         }
 
         /// <summary>
@@ -81,29 +60,21 @@ namespace RescatApp.Controllers
         [HttpPost]
         public async Task<IActionResult> CrearUsuario([FromBody] Usuario usuario)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-                
-                if (await _usuariosService.EmailEnUsoAsync(usuario.Email))
-                {
-                    return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario." });
-                }
-
-                int nuevoId = await _usuariosService.CrearAsync(usuario);
-                usuario.IdUsuario = nuevoId;
-                usuario.Clave = null; // No devolvemos la clave en la respuesta por seguridad
-
-                return CreatedAtAction(nameof(ObtenerUsuarioPorId), new { id = nuevoId }, usuario);
-
+                return BadRequest(ModelState);
             }
-            catch (Exception ex)
+               
+            if (await _usuariosService.EmailEnUsoAsync(usuario.Email))
             {
-                return StatusCode(500, new { mensaje = "Error interno al registrar el usuario.", detalle = ex.Message });
+                return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario." });
             }
+
+            int nuevoId = await _usuariosService.CrearAsync(usuario);
+            usuario.IdUsuario = nuevoId;
+            usuario.Clave = null; // No devolvemos la clave en la respuesta por seguridad
+
+            return CreatedAtAction(nameof(ObtenerUsuarioPorId), new { id = nuevoId }, usuario);
         }
 
         /// <summary>
@@ -112,31 +83,24 @@ namespace RescatApp.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            try
+            var usuario = await _usuariosService.ValidarCredencialesAsync(request.Email, request.Clave);
+            if (usuario == null)
+                return Unauthorized(new { mensaje = "Credenciales inválidas. Verifica tu correo y contraseña." });
+
+            var token = _jwtService.GenerarToken(usuario);
+
+            return Ok(new
             {
-                var usuario = await _usuariosService.ValidarCredencialesAsync(request.Email, request.Clave);
-                if (usuario == null)
-                    return Unauthorized(new { mensaje = "Credenciales inválidas. Verifica tu correo y contraseña." });
-
-                var token = _jwtService.GenerarToken(usuario);
-
-                return Ok(new
+                mensaje = "Inicio de sesión exitoso.",
+                token = token,
+                usuario = new
                 {
-                    mensaje = "Inicio de sesión exitoso.",
-                    token = token,
-                    usuario = new
-                    {
-                        usuario.IdUsuario,
-                        usuario.Nombre,
-                        usuario.Email,
-                        usuario.Rol
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error interno al autenticar.", detalle = ex.Message });
-            }
+                    usuario.IdUsuario,
+                    usuario.Nombre,
+                    usuario.Email,
+                    usuario.Rol
+                }
+            });
         }
 
         /// <summary>
@@ -145,45 +109,28 @@ namespace RescatApp.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> ActualizarUsuario(int id, [FromBody] Usuario usuario)
         {
+            var existencia = await _usuariosService.ObtenerPorIdAsync(id);
 
-            try
+            if (existencia == null)
             {
-
-                var existencia = await _usuariosService.ObtenerPorIdAsync(id);
-
-                if (existencia == null)
-                {
-
-                    return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
-
-                }
-
-                if (await _usuariosService.EmailEnUsoAsync(usuario.Email, id))
-                {
-                    return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario." });
-                }
-
-                usuario.IdUsuario = id; // Aseguramos que el ID del usuario a actualizar sea el correcto
-
-                var actualizado = await _usuariosService.ActualizarAsync(usuario);
-
-                if (!actualizado)
-                {
-
-                    return StatusCode(500, new { mensaje = "Error interno al actualizar el usuario." });
-
-                }
-
-                return NoContent();
-
-            }
-            catch (Exception ex)
-            {
-
-                return StatusCode(500, new { mensaje = "Error interno al actualizar el usuario.", detalle = ex.Message });
-
+                return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
             }
 
+            if (await _usuariosService.EmailEnUsoAsync(usuario.Email, id))
+            {
+                return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario." });
+            }
+
+            usuario.IdUsuario = id; // Aseguramos que el ID del usuario a actualizar sea el correcto
+
+            var actualizado = await _usuariosService.ActualizarAsync(usuario);
+
+            if (!actualizado)
+            {
+                return StatusCode(500, new { mensaje = "Error interno al actualizar el usuario." });
+            }
+
+            return NoContent();
         }
 
         /// <summary>
@@ -192,37 +139,21 @@ namespace RescatApp.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> EliminarUsuario(int id)
         {
-            try
+            var existencia = await _usuariosService.ObtenerPorIdAsync(id);
+
+            if (existencia == null)
             {
-
-                var existencia = await _usuariosService.ObtenerPorIdAsync(id);
-
-                if (existencia == null)
-                {
-
-                    return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
-
-                }
-
-                var eliminado = await _usuariosService.EliminarAsync(id);
-
-                if (!eliminado)
-                {
-
-                    return StatusCode(500, new { mensaje = "Error interno al eliminar el usuario." });
-
-                }
-
-
-                return Ok(new { mensaje = $"Usuario con ID {id} eliminado correctamente." });
-
+                return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
             }
-            catch (Exception ex)
+
+            var eliminado = await _usuariosService.EliminarAsync(id);
+
+            if (!eliminado)
             {
-
-                return StatusCode(500, new { mensaje = "Error interno al eliminar el usuario.", detalle = ex.Message });
-
+                return StatusCode(500, new { mensaje = "Error interno al eliminar el usuario." });
             }
+
+            return Ok(new { mensaje = $"Usuario con ID {id} eliminado correctamente." });
         }
 
     }

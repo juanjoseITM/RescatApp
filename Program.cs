@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using RescatApp.Interfaces;
+using RescatApp.Middleware;
 using RescatApp.Repositories;
 using RescatApp.Services;
 
@@ -23,6 +24,10 @@ builder.Services.AddScoped<SeguimientosServices>();
 builder.Services.AddScoped<JwtService>();
 
 builder.Services.AddScoped<IUsuariosServices, UsuariosServices>();
+
+// Manejo global de excepciones
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // 3. Configuración de Autenticación JWT
 var jwtKey = builder.Configuration["Jwt:Key"] 
@@ -81,6 +86,9 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Primero en el pipeline para atrapar las excepciones de todo lo que sigue
+app.UseExceptionHandler();
 
 // 5. Middleware HTTP
 if (app.Environment.IsDevelopment())
