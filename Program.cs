@@ -1,15 +1,28 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using RescatApp.Interfaces;
+using RescatApp.Middleware;
 using RescatApp.Repositories;
 using RescatApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Controladores
-builder.Services.AddControllers();
+// 1. Controladores (los enums viajan en el JSON como texto: "Adoptante", no 1)
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// CORS: solo los orígenes del frontend listados en appsettings.json pueden llamar la API desde el navegador
+var origenesPermitidos = builder.Configuration.GetSection("Cors:OrigenesPermitidos").Get<string[]>() ?? [];
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+        policy.WithOrigins(origenesPermitidos)
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
 
 // 2. Inyección de Dependencias (SOLID)
 builder.Services.AddScoped<IMascotasRepository, MascotasRepository>();
@@ -24,6 +37,12 @@ builder.Services.AddScoped<JwtService>();
 
 builder.Services.AddScoped<RefugioRepository>();
 builder.Services.AddScoped<RefugioService>();
+
+builder.Services.AddScoped<IUsuariosServices, UsuariosServices>();
+
+// Manejo global de excepciones
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // 3. Configuración de Autenticación JWT
 var jwtKey = builder.Configuration["Jwt:Key"] 
@@ -58,6 +77,8 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1" 
     });
 
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "RescatApp.xml"));
+
     // Definición directa del esquema Bearer
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -81,6 +102,9 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// Primero en el pipeline para atrapar las excepciones de todo lo que sigue
+app.UseExceptionHandler();
+
 // 5. Middleware HTTP
 if (app.Environment.IsDevelopment())
 {
@@ -96,6 +120,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

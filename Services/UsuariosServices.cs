@@ -1,6 +1,56 @@
-﻿namespace RescatApp.Services
+﻿using RescatApp.Interfaces;
+using RescatApp.Models;
+namespace RescatApp.Services
 {
-    public class UsuariosServices
-    {
+    public class UsuariosServices : IUsuariosServices
+    {        
+        private readonly IUsuariosRepository _usuariosRepository;
+
+        public UsuariosServices(IUsuariosRepository usuariosRepository)
+        {    
+            _usuariosRepository = usuariosRepository;
+        }
+
+        public async Task<List<Usuario>> ObtenerTodosAsync()
+        {            
+            return await _usuariosRepository.ObtenerTodosAsync();
+        }
+
+        public async Task<Usuario?> ObtenerPorIdAsync(int id)
+        {            
+            return await _usuariosRepository.ObtenerPorIdAsync(id);
+        }
+
+        public async Task<Usuario?> ObtenerPorEmailAsync(string email)
+        {
+            return await _usuariosRepository.ObtenerPorEmailAsync(email);
+        }
+
+        public async Task<int> CrearAsync(Usuario usuario)
+        {
+            return await _usuariosRepository.CrearAsync(usuario);
+        }
+
+        public async Task<Usuario?> ValidarCredencialesAsync(string email, string clave)
+        {
+            return await _usuariosRepository.ValidarCredencialesAsync(email, clave);
+        } 
+        
+        public async Task<bool> ActualizarAsync(Usuario usuario)
+        {
+            return await _usuariosRepository.ActualizarAsync(usuario);
+        }
+
+        public async Task<bool> EliminarAsync(int id)
+        {
+            return await _usuariosRepository.EliminarAsync(id);
+        }
+
+        public async Task<bool> EmailEnUsoAsync(string email, int? idExcluir = null)
+        {
+            var otro = await _usuariosRepository.ObtenerPorEmailAsync(email);
+            return otro != null && otro.IdUsuario != idExcluir;
+        }
+
     }
 }

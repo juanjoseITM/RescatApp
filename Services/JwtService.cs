@@ -25,7 +25,7 @@ namespace RescatApp.Services
                 new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
                 new Claim(ClaimTypes.Name, usuario.Nombre),
                 new Claim(ClaimTypes.Email, usuario.Email),
-                new Claim(ClaimTypes.Role, usuario.Rol ?? "Adoptante")
+                new Claim(ClaimTypes.Role, usuario.Rol.ToString())
             };
 
             var token = new JwtSecurityToken(

@@ -9,100 +9,152 @@ namespace RescatApp.Controllers
     [Route("api/[controller]")]
     public class UsuariosController : ControllerBase
     {
-        private readonly IUsuariosRepository _usuariosRepository;
+        private readonly IUsuariosServices _usuariosService;
         private readonly JwtService _jwtService;
 
-        public UsuariosController(IUsuariosRepository usuariosRepository, JwtService jwtService)
+        public UsuariosController(JwtService jwtService, IUsuariosServices usuariosService)
         {
-            _usuariosRepository = usuariosRepository;
             _jwtService = jwtService;
+            _usuariosService = usuariosService;
         }
 
+        /// <summary>
+        /// Obtiene la lista de todos los usuarios registrados.
+        /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetUsuarios()
+        public async Task<IActionResult> ObtenerUsuarios()
         {
-            try
-            {
-                var usuarios = await _usuariosRepository.ObtenerTodosAsync();
-                return Ok(usuarios);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error interno al consultar los usuarios.", detalle = ex.Message });
-            }
+            var usuarios = await _usuariosService.ObtenerTodosAsync();
+            return Ok(usuarios);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUsuarioPorId(int id)
+        /// <summary>
+        /// Obtiene un usuario por su ID.
+        /// </summary>
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> ObtenerUsuarioPorId(int id)
         {
-            try
-            {
-                var usuario = await _usuariosRepository.ObtenerPorIdAsync(id);
-                if (usuario == null)
-                    return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
+            var usuario = await _usuariosService.ObtenerPorIdAsync(id);
+            if (usuario == null)
+                return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
 
-                return Ok(usuario);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error al consultar el usuario.", detalle = ex.Message });
-            }
+            return Ok(usuario);
         }
 
+        /// <summary>
+        /// Obtiene un usuario por su correo electrónico.
+        /// </summary>
+        [HttpGet("{email}")]
+        public async Task<IActionResult> ObtenerUsuarioPorEmail(string email)
+        {
+            var usuario = await _usuariosService.ObtenerPorEmailAsync(email);
+            if (usuario == null)
+                return NotFound(new { mensaje = $"Usuario con Correo {email} no encontrado." });
+
+            return Ok(usuario);
+        }
+
+        /// <summary>
+        /// Crea un nuevo usuario.
+        /// </summary>
         [HttpPost]
         public async Task<IActionResult> CrearUsuario([FromBody] Usuario usuario)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                int nuevoId = await _usuariosRepository.CrearAsync(usuario);
-                usuario.IdUsuario = nuevoId;
-
-                return CreatedAtAction(nameof(GetUsuarioPorId), new { id = nuevoId }, usuario);
+                return BadRequest(ModelState);
             }
-            catch (Exception ex)
+               
+            if (await _usuariosService.EmailEnUsoAsync(usuario.Email))
             {
-                return StatusCode(500, new { mensaje = "Error interno al registrar el usuario.", detalle = ex.Message });
+                return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario." });
             }
+
+            int nuevoId = await _usuariosService.CrearAsync(usuario);
+            usuario.IdUsuario = nuevoId;
+            usuario.Clave = null; // No devolvemos la clave en la respuesta por seguridad
+
+            return CreatedAtAction(nameof(ObtenerUsuarioPorId), new { id = nuevoId }, usuario);
         }
 
+        /// <summary>
+        /// Autentica a un usuario y genera un token JWT.
+        /// </summary>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            try
+            var usuario = await _usuariosService.ValidarCredencialesAsync(request.Email, request.Clave);
+            if (usuario == null)
+                return Unauthorized(new { mensaje = "Credenciales inválidas. Verifica tu correo y contraseña." });
+
+            var token = _jwtService.GenerarToken(usuario);
+
+            return Ok(new
             {
-                var usuario = await _usuariosRepository.ValidarCredencialesAsync(request.Email, request.Clave);
-                if (usuario == null)
-                    return Unauthorized(new { mensaje = "Credenciales inválidas. Verifica tu correo y contraseña." });
-
-                // Generar el token JWT
-                var token = _jwtService.GenerarToken(usuario);
-
-                return Ok(new
+                mensaje = "Inicio de sesión exitoso.",
+                token = token,
+                usuario = new
                 {
-                    mensaje = "Inicio de sesión exitoso.",
-                    token = token,
-                    usuario = new
-                    {
-                        usuario.IdUsuario,
-                        usuario.Nombre,
-                        usuario.Email,
-                        usuario.Rol
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error interno al autenticar.", detalle = ex.Message });
-            }
+                    usuario.IdUsuario,
+                    usuario.Nombre,
+                    usuario.Email,
+                    usuario.Rol
+                }
+            });
         }
-    }
 
-    public class LoginRequest
-    {
-        public string Email { get; set; } = string.Empty;
-        public string Clave { get; set; } = string.Empty;
+        /// <summary>
+        ///  Actualiza la información de un usuario existente.
+        /// </summary>
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> ActualizarUsuario(int id, [FromBody] Usuario usuario)
+        {
+            var existencia = await _usuariosService.ObtenerPorIdAsync(id);
+
+            if (existencia == null)
+            {
+                return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
+            }
+
+            if (await _usuariosService.EmailEnUsoAsync(usuario.Email, id))
+            {
+                return Conflict(new { mensaje = $"El correo {usuario.Email} ya está en uso por otro usuario." });
+            }
+
+            usuario.IdUsuario = id; // Aseguramos que el ID del usuario a actualizar sea el correcto
+
+            var actualizado = await _usuariosService.ActualizarAsync(usuario);
+
+            if (!actualizado)
+            {
+                return StatusCode(500, new { mensaje = "Error interno al actualizar el usuario." });
+            }
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Elimina un usuario existente por su ID.
+        /// </summary>
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> EliminarUsuario(int id)
+        {
+            var existencia = await _usuariosService.ObtenerPorIdAsync(id);
+
+            if (existencia == null)
+            {
+                return NotFound(new { mensaje = $"Usuario con ID {id} no encontrado." });
+            }
+
+            var eliminado = await _usuariosService.EliminarAsync(id);
+
+            if (!eliminado)
+            {
+                return StatusCode(500, new { mensaje = "Error interno al eliminar el usuario." });
+            }
+
+            return Ok(new { mensaje = $"Usuario con ID {id} eliminado correctamente." });
+        }
+
     }
 }
