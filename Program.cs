@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -9,8 +10,19 @@ using RescatApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Controladores
-builder.Services.AddControllers();
+// 1. Controladores (los enums viajan en el JSON como texto: "Adoptante", no 1)
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// CORS: solo los orígenes del frontend listados en appsettings.json pueden llamar la API desde el navegador
+var origenesPermitidos = builder.Configuration.GetSection("Cors:OrigenesPermitidos").Get<string[]>() ?? [];
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+        policy.WithOrigins(origenesPermitidos)
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
 
 // 2. Inyección de Dependencias (SOLID)
 builder.Services.AddScoped<IMascotasRepository, MascotasRepository>();
@@ -105,6 +117,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

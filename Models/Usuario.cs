@@ -7,7 +7,7 @@
         public string Email { get; set; } = string.Empty;
         public string? Telefono { get; set; }
         public string? Clave { get; set; }
-        public string Rol { get; set; } = "Adoptante";
+        public TipoUsuario Rol { get; set; } = TipoUsuario.Adoptante;
         public DateTime FechaRegistro { get; set; } = DateTime.Now;
     }
 }
