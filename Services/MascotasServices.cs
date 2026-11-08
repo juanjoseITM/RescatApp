@@ -25,19 +25,19 @@ namespace RescatApp.Services
         public async Task<Mascota> CrearAsync(Mascota mascota)
         {
             // Si no se especifica fecha de ingreso, asigna la fecha actual
-            if (mascota.FechaIngreso == default)
+            if (mascota.fecha_ingreso == null)
             {
-                mascota.FechaIngreso = DateTime.Now;
+                mascota.fecha_ingreso = DateTime.Now;
             }
 
-            // Estado por defecto al publicar
-            if (string.IsNullOrWhiteSpace(mascota.EstadoAdopcion))
+            // Estado por defecto al publicar (1 = Disponible, confirmar con el equipo)
+            if (mascota.id_estado_adopcion == 0)
             {
-                mascota.EstadoAdopcion = "Disponible";
+                mascota.id_estado_adopcion = 1;
             }
 
             int idGenerado = await _mascotasRepository.CrearAsync(mascota);
-            mascota.IdMascota = idGenerado;
+            mascota.id_mascota = idGenerado;
             return mascota;
         }
 
